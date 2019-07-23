@@ -1,4 +1,5 @@
-data
+*.pkl
+data/
 *.pyc
 *.ipynb
 logs/

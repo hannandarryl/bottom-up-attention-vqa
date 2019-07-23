@@ -4,7 +4,7 @@ import sys
 import json
 import numpy as np
 import re
-import cPickle
+import pickle
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataset import Dictionary
@@ -136,15 +136,13 @@ def filter_answers(answers_dset, min_occurence):
     occurence = {}
 
     for ans_entry in answers_dset:
-        answers = ans_entry['answers']
         gtruth = ans_entry['multiple_choice_answer']
         gtruth = preprocess_answer(gtruth)
         if gtruth not in occurence:
             occurence[gtruth] = set()
         occurence[gtruth].add(ans_entry['question_id'])
-    for answer in occurence.keys():
-        if len(occurence[answer]) < min_occurence:
-            occurence.pop(answer)
+    
+    occurence = [k for k, v in occurence.items() if len(v) >= min_occurence]
 
     print('Num of answers that appear >= %d times: %d' % (
         min_occurence, len(occurence)))
@@ -169,9 +167,9 @@ def create_ans2label(occurence, name, cache_root='data/cache'):
     utils.create_dir(cache_root)
 
     cache_file = os.path.join(cache_root, name+'_ans2label.pkl')
-    cPickle.dump(ans2label, open(cache_file, 'wb'))
+    pickle.dump(ans2label, open(cache_file, 'wb'))
     cache_file = os.path.join(cache_root, name+'_label2ans.pkl')
-    cPickle.dump(label2ans, open(cache_file, 'wb'))
+    pickle.dump(label2ans, open(cache_file, 'wb'))
     return ans2label
 
 
@@ -182,12 +180,21 @@ def compute_target(answers_dset, ans2label, name, cache_root='data/cache'):
 
     Write result into a cache file
     """
+    id_to_int_map = json.load(open('data/id_to_int_map.json'))
     target = []
+    count = 0
     for ans_entry in answers_dset:
-        answers = ans_entry['answers']
+        answers = None
+        if name == 'train':
+            answers = ans_entry['answers']
+        elif name == 'val' or name == 'test':
+            answers = [preprocess_answer(ans_entry['answer'])]
         answer_count = {}
         for answer in answers:
-            answer_ = answer['answer']
+            if name == 'train':
+                answer_ = answer['answer']
+            elif name == 'val' or name == 'test':
+                answer_ = answer
             answer_count[answer_] = answer_count.get(answer_, 0) + 1
 
         labels = []
@@ -199,16 +206,28 @@ def compute_target(answers_dset, ans2label, name, cache_root='data/cache'):
             score = get_score(answer_count[answer])
             scores.append(score)
 
-        target.append({
-            'question_id': ans_entry['question_id'],
-            'image_id': ans_entry['image_id'],
-            'labels': labels,
-            'scores': scores
-        })
+        if name == 'train':
+            target.append({
+                'question_id': ans_entry['question_id'],
+                'image_id': ans_entry['image_id'],
+                'labels': labels,
+                'scores': scores
+            })
+        elif name == 'val' or name == 'test':
+            #if ans_entry['id'] not in id_to_int_map:
+            #    continue
+            #if not labels or not scores:
+            #    continue
+            target.append({
+                'question_id': ans_entry['id'],
+                'image_id': ans_entry['id'],
+                'labels': labels,
+                'scores': scores
+            })
 
     utils.create_dir(cache_root)
     cache_file = os.path.join(cache_root, name+'_target.pkl')
-    cPickle.dump(target, open(cache_file, 'wb'))
+    pickle.dump(target, open(cache_file, 'wb'))
     return target
 
 
@@ -228,17 +247,28 @@ if __name__ == '__main__':
     train_answer_file = 'data/v2_mscoco_train2014_annotations.json'
     train_answers = json.load(open(train_answer_file))['annotations']
 
-    val_answer_file = 'data/v2_mscoco_val2014_annotations.json'
-    val_answers = json.load(open(val_answer_file))['annotations']
+    finetune_answer_file = 'data/train_data.json'
+    finetune_answers = [example for example in json.load(open(finetune_answer_file)) if example['id'].startswith('image')]
+    finetune_answers_dict = [{'multiple_choice_answer':example['answer'], 'question_id':example['id']} for example in finetune_answers]
+
+    val_answer_file = 'data/updated_dev_data.json'
+    id_to_int = json.load(open('data/id_to_int_map.json'))
+    val_answers = [example for example in json.load(open(val_answer_file))]
+    val_answers_dict = [{'multiple_choice_answer':example['answer'], 'question_id':example['id']} for example in val_answers]
 
     train_question_file = 'data/v2_OpenEnded_mscoco_train2014_questions.json'
     train_questions = json.load(open(train_question_file))['questions']
 
-    val_question_file = 'data/v2_OpenEnded_mscoco_val2014_questions.json'
-    val_questions = json.load(open(val_question_file))['questions']
+    val_question_file = 'data/updated_test_data.json'
+    val_questions = [example for example in json.load(open(val_question_file))]
 
-    answers = train_answers + val_answers
-    occurence = filter_answers(answers, 9)
+    test_answers = [ex for ex in json.load(open('data/updated_test_data.json'))]
+    #answers = val_answers_dict
+    #occurence = list(set(filter_answers(val_answers_dict, 0)))
+ 
+    answers = train_answers + finetune_answers_dict
+    occurence = list(set(filter_answers(train_answers, 7) + filter_answers(finetune_answers_dict, 0)))
     ans2label = create_ans2label(occurence, 'trainval')
+    #ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
     compute_target(train_answers, ans2label, 'train')
-    compute_target(val_answers, ans2label, 'val')
+    compute_target(test_answers, ans2label, 'test')
