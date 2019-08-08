@@ -11,13 +11,13 @@ def create_dictionary(dataroot):
     dictionary = Dictionary()
     questions = []
     files = [
-        'updated_train_data.json',
+        'new_id_format_train_data.json',
         'v2_OpenEnded_mscoco_train2014_questions.json'
     ]
     for path in files:
         question_path = os.path.join(dataroot, path)
-        if path == 'updated_train_data.json':
-            qs = [example for example in json.load(open(question_path))]
+        if path == 'new_id_format_train_data.json':
+            qs = [example for example in json.load(open(question_path)) if example['q_type'] == 'image']
         else:
             qs = json.load(open(question_path))['questions']
         for example in qs:

@@ -25,7 +25,7 @@ import json
 csv.field_size_limit(sys.maxsize)
 
 FIELDNAMES = ['image_id', 'image_w', 'image_h', 'num_boxes', 'boxes', 'features']
-infile = 'data/our_images_36.tsv'
+infile = 'data/new_id_format_image_features.tsv'
 infile_2 = 'data/trainval_36/trainval_resnet101_faster_rcnn_genome_36.tsv'
 train_data_file = 'data/train36.hdf5'
 val_data_file = 'data/val36.hdf5'
@@ -41,7 +41,7 @@ num_fixed_boxes = 36
 if __name__ == '__main__':
     h_train = h5py.File(train_data_file, "w")
     h_val = h5py.File(val_data_file, "w")
-    int_to_id = {v: k for k, v in json.load(open('data/id_to_int_map.json')).items()}
+    int_to_id = {v: k for k, v in json.load(open('data/new_id_format_id_to_int_map.json')).items()}
 
     if os.path.exists(train_ids_file) and os.path.exists(val_ids_file):
         train_imgids = pickle.load(open(train_ids_file, 'rb'))
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     if len(val_imgids) != 0:
         print('Warning: val_image_ids is not empty')
 
-    print(len(val_indices))
+    print(len(val_imgids), 'of our images remain')
     pickle.dump(train_indices, open(train_indices_file, 'wb'))
     pickle.dump(val_indices, open(val_indices_file, 'wb'))
     h_train.close()

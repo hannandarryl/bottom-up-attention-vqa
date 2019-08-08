@@ -89,9 +89,9 @@ def _load_dataset(dataroot, name, img_id2val):
     """
     id_to_int_map = None
     if name == 'val' or name =='test':
-        id_to_int_map = json.load(open('data/id_to_int_map.json'))
-        question_path = os.path.join(dataroot, 'updated_test_data.json')
-        questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
+        id_to_int_map = json.load(open('data/new_id_format_id_to_int_map.json'))
+        question_path = os.path.join(dataroot, 'new_id_format_dev_data.json')
+        questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'], key=lambda x: x['id'])
     else:
         question_path = os.path.join(
             dataroot, 'v2_OpenEnded_mscoco_%s2014_questions.json' % name)

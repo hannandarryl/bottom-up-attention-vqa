@@ -180,7 +180,7 @@ def compute_target(answers_dset, ans2label, name, cache_root='data/cache'):
 
     Write result into a cache file
     """
-    id_to_int_map = json.load(open('data/id_to_int_map.json'))
+    id_to_int_map = json.load(open('data/new_id_format_id_to_int_map.json'))
     target = []
     count = 0
     for ans_entry in answers_dset:
@@ -247,22 +247,22 @@ if __name__ == '__main__':
     train_answer_file = 'data/v2_mscoco_train2014_annotations.json'
     train_answers = json.load(open(train_answer_file))['annotations']
 
-    finetune_answer_file = 'data/train_data.json'
-    finetune_answers = [example for example in json.load(open(finetune_answer_file)) if example['id'].startswith('image')]
+    finetune_answer_file = 'data/new_id_format_train_data.json'
+    finetune_answers = [example for example in json.load(open(finetune_answer_file)) if example['q_type'] == 'image']
     finetune_answers_dict = [{'multiple_choice_answer':example['answer'], 'question_id':example['id']} for example in finetune_answers]
 
-    val_answer_file = 'data/updated_dev_data.json'
-    id_to_int = json.load(open('data/id_to_int_map.json'))
-    val_answers = [example for example in json.load(open(val_answer_file))]
+    val_answer_file = 'data/new_id_format_dev_data.json'
+    id_to_int = json.load(open('data/new_id_format_id_to_int_map.json'))
+    val_answers = [example for example in json.load(open(val_answer_file)) if example['q_type'] == 'image']
     val_answers_dict = [{'multiple_choice_answer':example['answer'], 'question_id':example['id']} for example in val_answers]
 
     train_question_file = 'data/v2_OpenEnded_mscoco_train2014_questions.json'
     train_questions = json.load(open(train_question_file))['questions']
 
-    val_question_file = 'data/updated_test_data.json'
-    val_questions = [example for example in json.load(open(val_question_file))]
+    val_question_file = 'data/new_id_format_dev_data.json'
+    val_questions = [example for example in json.load(open(val_question_file)) if example['q_type'] == 'image']
 
-    test_answers = [ex for ex in json.load(open('data/updated_test_data.json'))]
+    test_answers = [ex for ex in json.load(open('data/new_id_format_dev_data.json')) if ex['q_type'] == 'image']
     #answers = val_answers_dict
     #occurence = list(set(filter_answers(val_answers_dict, 0)))
  

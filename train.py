@@ -6,7 +6,7 @@ import utils
 from torch.autograd import Variable
 from tqdm import tqdm
 import pickle
-
+import json
 
 def instance_bce_with_logits(logits, labels):
     assert logits.dim() == 2
@@ -73,6 +73,7 @@ def evaluate(model, dataloader):
     upper_bound = 0
     num_data = 0
     lbl_to_ans = pickle.load(open('data/cache/trainval_label2ans.pkl', 'rb'))
+    id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_dev_data.json'))}
     out_file = open('image_predictions_test.txt', 'w+')
     with torch.no_grad():
         for id_list, v, b, q, a, label in iter(dataloader):
@@ -85,7 +86,8 @@ def evaluate(model, dataloader):
             for p, l, id_num in zip(pred, label, id_list):
                 guess = torch.argmax(p).item()
                 out_file.write(id_num + '\t' + lbl_to_ans[guess] + '\n')
-                if guess == l.item():
+                #if guess == l.item():
+                if lbl_to_ans[guess].lower().strip() == id_to_a[id_num].lower().strip():
                     score += 1
             upper_bound += (a.max(1)[0]).sum()
             num_data += pred.size(0)
