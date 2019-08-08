@@ -261,14 +261,10 @@ if __name__ == '__main__':
 
     val_question_file = 'data/new_id_format_dev_data.json'
     val_questions = [example for example in json.load(open(val_question_file)) if example['q_type'] == 'image']
-
-    test_answers = [ex for ex in json.load(open('data/new_id_format_dev_data.json')) if ex['q_type'] == 'image']
-    #answers = val_answers_dict
-    #occurence = list(set(filter_answers(val_answers_dict, 0)))
  
     answers = train_answers + finetune_answers_dict
     occurence = list(set(filter_answers(train_answers, 7) + filter_answers(finetune_answers_dict, 0)))
     ans2label = create_ans2label(occurence, 'trainval')
     #ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
     compute_target(train_answers, ans2label, 'train')
-    compute_target(test_answers, ans2label, 'test')
+    compute_target(val_answers, ans2label, 'test')
