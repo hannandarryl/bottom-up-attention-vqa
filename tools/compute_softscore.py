@@ -10,54 +10,53 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataset import Dictionary
 import utils
 
-
 contractions = {
     "aint": "ain't", "arent": "aren't", "cant": "can't", "couldve":
-    "could've", "couldnt": "couldn't", "couldn'tve": "couldn't've",
+        "could've", "couldnt": "couldn't", "couldn'tve": "couldn't've",
     "couldnt've": "couldn't've", "didnt": "didn't", "doesnt":
-    "doesn't", "dont": "don't", "hadnt": "hadn't", "hadnt've":
-    "hadn't've", "hadn'tve": "hadn't've", "hasnt": "hasn't", "havent":
-    "haven't", "hed": "he'd", "hed've": "he'd've", "he'dve":
-    "he'd've", "hes": "he's", "howd": "how'd", "howll": "how'll",
+        "doesn't", "dont": "don't", "hadnt": "hadn't", "hadnt've":
+        "hadn't've", "hadn'tve": "hadn't've", "hasnt": "hasn't", "havent":
+        "haven't", "hed": "he'd", "hed've": "he'd've", "he'dve":
+        "he'd've", "hes": "he's", "howd": "how'd", "howll": "how'll",
     "hows": "how's", "Id've": "I'd've", "I'dve": "I'd've", "Im":
-    "I'm", "Ive": "I've", "isnt": "isn't", "itd": "it'd", "itd've":
-    "it'd've", "it'dve": "it'd've", "itll": "it'll", "let's": "let's",
+        "I'm", "Ive": "I've", "isnt": "isn't", "itd": "it'd", "itd've":
+        "it'd've", "it'dve": "it'd've", "itll": "it'll", "let's": "let's",
     "maam": "ma'am", "mightnt": "mightn't", "mightnt've":
-    "mightn't've", "mightn'tve": "mightn't've", "mightve": "might've",
+        "mightn't've", "mightn'tve": "mightn't've", "mightve": "might've",
     "mustnt": "mustn't", "mustve": "must've", "neednt": "needn't",
     "notve": "not've", "oclock": "o'clock", "oughtnt": "oughtn't",
     "ow's'at": "'ow's'at", "'ows'at": "'ow's'at", "'ow'sat":
-    "'ow's'at", "shant": "shan't", "shed've": "she'd've", "she'dve":
-    "she'd've", "she's": "she's", "shouldve": "should've", "shouldnt":
-    "shouldn't", "shouldnt've": "shouldn't've", "shouldn'tve":
-    "shouldn't've", "somebody'd": "somebodyd", "somebodyd've":
-    "somebody'd've", "somebody'dve": "somebody'd've", "somebodyll":
-    "somebody'll", "somebodys": "somebody's", "someoned": "someone'd",
+        "'ow's'at", "shant": "shan't", "shed've": "she'd've", "she'dve":
+        "she'd've", "she's": "she's", "shouldve": "should've", "shouldnt":
+        "shouldn't", "shouldnt've": "shouldn't've", "shouldn'tve":
+        "shouldn't've", "somebody'd": "somebodyd", "somebodyd've":
+        "somebody'd've", "somebody'dve": "somebody'd've", "somebodyll":
+        "somebody'll", "somebodys": "somebody's", "someoned": "someone'd",
     "someoned've": "someone'd've", "someone'dve": "someone'd've",
     "someonell": "someone'll", "someones": "someone's", "somethingd":
-    "something'd", "somethingd've": "something'd've", "something'dve":
-    "something'd've", "somethingll": "something'll", "thats":
-    "that's", "thered": "there'd", "thered've": "there'd've",
+        "something'd", "somethingd've": "something'd've", "something'dve":
+        "something'd've", "somethingll": "something'll", "thats":
+        "that's", "thered": "there'd", "thered've": "there'd've",
     "there'dve": "there'd've", "therere": "there're", "theres":
-    "there's", "theyd": "they'd", "theyd've": "they'd've", "they'dve":
-    "they'd've", "theyll": "they'll", "theyre": "they're", "theyve":
-    "they've", "twas": "'twas", "wasnt": "wasn't", "wed've":
-    "we'd've", "we'dve": "we'd've", "weve": "we've", "werent":
-    "weren't", "whatll": "what'll", "whatre": "what're", "whats":
-    "what's", "whatve": "what've", "whens": "when's", "whered":
-    "where'd", "wheres": "where's", "whereve": "where've", "whod":
-    "who'd", "whod've": "who'd've", "who'dve": "who'd've", "wholl":
-    "who'll", "whos": "who's", "whove": "who've", "whyll": "why'll",
+        "there's", "theyd": "they'd", "theyd've": "they'd've", "they'dve":
+        "they'd've", "theyll": "they'll", "theyre": "they're", "theyve":
+        "they've", "twas": "'twas", "wasnt": "wasn't", "wed've":
+        "we'd've", "we'dve": "we'd've", "weve": "we've", "werent":
+        "weren't", "whatll": "what'll", "whatre": "what're", "whats":
+        "what's", "whatve": "what've", "whens": "when's", "whered":
+        "where'd", "wheres": "where's", "whereve": "where've", "whod":
+        "who'd", "whod've": "who'd've", "who'dve": "who'd've", "wholl":
+        "who'll", "whos": "who's", "whove": "who've", "whyll": "why'll",
     "whyre": "why're", "whys": "why's", "wont": "won't", "wouldve":
-    "would've", "wouldnt": "wouldn't", "wouldnt've": "wouldn't've",
+        "would've", "wouldnt": "wouldn't", "wouldnt've": "wouldn't've",
     "wouldn'tve": "wouldn't've", "yall": "y'all", "yall'll":
-    "y'all'll", "y'allll": "y'all'll", "yall'd've": "y'all'd've",
+        "y'all'll", "y'allll": "y'all'll", "yall'd've": "y'all'd've",
     "y'alld've": "y'all'd've", "y'all'dve": "y'all'd've", "youd":
-    "you'd", "youd've": "you'd've", "you'dve": "you'd've", "youll":
-    "you'll", "youre": "you're", "youve": "you've"
+        "you'd", "youd've": "you'd've", "you'dve": "you'd've", "youll":
+        "you'll", "youre": "you're", "youve": "you've"
 }
 
-manual_map = { 'none': '0',
+manual_map = {'none': '0',
               'zero': '0',
               'one': '1',
               'two': '2',
@@ -67,14 +66,14 @@ manual_map = { 'none': '0',
               'six': '6',
               'seven': '7',
               'eight': '8',
-               'nine': '9',
+              'nine': '9',
               'ten': '10'}
 articles = ['a', 'an', 'the']
 period_strip = re.compile("(?!<=\d)(\.)(?!\d)")
 comma_strip = re.compile("(\d)(\,)(\d)")
 punct = [';', r"/", '[', ']', '"', '{', '}',
-                '(', ')', '=', '+', '\\', '_', '-',
-                '>', '<', '@', '`', ',', '?', '!']
+         '(', ')', '=', '+', '\\', '_', '-',
+         '>', '<', '@', '`', ',', '?', '!']
 
 
 def get_score(occurences):
@@ -94,7 +93,7 @@ def process_punctuation(inText):
     outText = inText
     for p in punct:
         if (p + ' ' in inText or ' ' + p in inText) \
-           or (re.search(comma_strip, inText) != None):
+                or (re.search(comma_strip, inText) != None):
             outText = outText.replace(p, '')
         else:
             outText = outText.replace(p, ' ')
@@ -141,7 +140,7 @@ def filter_answers(answers_dset, min_occurence):
         if gtruth not in occurence:
             occurence[gtruth] = set()
         occurence[gtruth].add(ans_entry['question_id'])
-    
+
     occurence = [k for k, v in occurence.items() if len(v) >= min_occurence]
 
     print('Num of answers that appear >= %d times: %d' % (
@@ -166,9 +165,9 @@ def create_ans2label(occurence, name, cache_root='data/cache'):
 
     utils.create_dir(cache_root)
 
-    cache_file = os.path.join(cache_root, name+'_ans2label.pkl')
+    cache_file = os.path.join(cache_root, name + '_ans2label.pkl')
     pickle.dump(ans2label, open(cache_file, 'wb'))
-    cache_file = os.path.join(cache_root, name+'_label2ans.pkl')
+    cache_file = os.path.join(cache_root, name + '_label2ans.pkl')
     pickle.dump(label2ans, open(cache_file, 'wb'))
     return ans2label
 
@@ -187,13 +186,13 @@ def compute_target(answers_dset, ans2label, name, cache_root='data/cache'):
         answers = None
         if name == 'train':
             answers = ans_entry['answers']
-        elif name == 'val' or name == 'test':
+        elif name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
             answers = [preprocess_answer(ans_entry['answer'])]
         answer_count = {}
         for answer in answers:
             if name == 'train':
                 answer_ = answer['answer']
-            elif name == 'val' or name == 'test':
+            elif name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
                 answer_ = answer
             answer_count[answer_] = answer_count.get(answer_, 0) + 1
 
@@ -213,10 +212,10 @@ def compute_target(answers_dset, ans2label, name, cache_root='data/cache'):
                 'labels': labels,
                 'scores': scores
             })
-        elif name == 'val' or name == 'test':
-            #if ans_entry['id'] not in id_to_int_map:
+        elif name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
+            # if ans_entry['id'] not in id_to_int_map:
             #    continue
-            #if not labels or not scores:
+            # if not labels or not scores:
             #    continue
             target.append({
                 'question_id': ans_entry['id'],
@@ -226,7 +225,7 @@ def compute_target(answers_dset, ans2label, name, cache_root='data/cache'):
             })
 
     utils.create_dir(cache_root)
-    cache_file = os.path.join(cache_root, name+'_target.pkl')
+    cache_file = os.path.join(cache_root, name + '_target.pkl')
     pickle.dump(target, open(cache_file, 'wb'))
     return target
 
@@ -249,25 +248,29 @@ if __name__ == '__main__':
 
     finetune_answer_file = 'data/new_id_format_train_data.json'
     finetune_answers = [example for example in json.load(open(finetune_answer_file)) if example['q_type'] == 'image']
-    finetune_answers_dict = [{'multiple_choice_answer':example['answer'], 'question_id':example['id']} for example in finetune_answers]
+    finetune_answers_dict = [{'multiple_choice_answer': example['answer'], 'question_id': example['id']} for example in
+                             finetune_answers]
 
     val_answer_file = 'data/new_id_format_dev_data.json'
     id_to_int = json.load(open('data/new_id_format_id_to_int_map.json'))
     val_answers = [example for example in json.load(open(val_answer_file)) if example['q_type'] == 'image']
-    val_answers_dict = [{'multiple_choice_answer':example['answer'], 'question_id':example['id']} for example in val_answers]
+    val_answers_dict = [{'multiple_choice_answer': example['answer'], 'question_id': example['id']} for example in
+                        val_answers]
 
     train_question_file = 'data/v2_OpenEnded_mscoco_train2014_questions.json'
     train_questions = json.load(open(train_question_file))['questions']
 
     val_question_file = 'data/new_id_format_dev_data.json'
     val_questions = [example for example in json.load(open(val_question_file)) if example['q_type'] == 'image']
- 
+
     test_answers = [ex for ex in json.load(open('data/new_id_format_test_data.json')) if ex['q_type'] == 'image']
-    #test_answers = [ex for ex in json.load(open('data/new_id_format_test_img_examples.json'))]
-    
+    # test_answers = [ex for ex in json.load(open('data/new_id_format_test_img_examples.json'))]
+
     answers = train_answers + finetune_answers_dict
     occurence = list(set(filter_answers(train_answers, 20) + filter_answers(finetune_answers_dict, 0)))
-    #ans2label = create_ans2label(occurence, 'trainval')
-    ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
+    ans2label = create_ans2label(occurence, 'trainval')
+    # ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
     compute_target(train_answers, ans2label, 'train')
+    compute_target(finetune_answers, ans2label, 'finetune')
+    compute_target(val_answers, ans2label, 'dev')
     compute_target(test_answers, ans2label, 'test')

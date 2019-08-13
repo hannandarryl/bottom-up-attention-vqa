@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 MAX_VOCAB_SIZE = 12000
 
+
 class Dictionary(object):
     def __init__(self, word2idx=None, idx2word=None):
         if word2idx is None:
@@ -68,20 +69,20 @@ class Dictionary(object):
 def _create_entry(img, question, answer, name):
     answer.pop('image_id')
     answer.pop('question_id')
-    if name == 'val' or name == 'test':
+    if name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
         entry = {
-            'question_id' : question['id'],
-            'image_id'    : question['id'],
-            'image'       : img,
-            'question'    : question['question'],
-            'answer'      : answer}
+            'question_id': question['id'],
+            'image_id': question['id'],
+            'image': img,
+            'question': question['question'],
+            'answer': answer}
     else:
         entry = {
-            'question_id' : question['question_id'],
-            'image_id'    : question['image_id'],
-            'image'       : img,
-            'question'    : question['question'],
-            'answer'      : answer}
+            'question_id': question['question_id'],
+            'image_id': question['image_id'],
+            'image': img,
+            'question': question['question'],
+            'answer': answer}
     return entry
 
 
@@ -93,16 +94,27 @@ def _load_dataset(dataroot, name, img_id2val):
     name: 'train', 'val'
     """
     id_to_int_map = None
-    if name == 'val' or name =='test':
+    if name == 'val' or name == 'test' or name == 'dev' or name == 'finetune':
         id_to_int_map = json.load(open('data/new_id_format_id_to_int_map.json'))
-        question_path = os.path.join(dataroot, 'new_id_format_test_data.json')
-        questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'], key=lambda x: x['id'])
-        #questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
+        if name == 'val' or name == 'test':
+            question_path = os.path.join(dataroot, 'new_id_format_test_data.json')
+            # questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
+            questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'],
+                               key=lambda x: x['id'])
+        elif name == 'dev':
+            question_path = os.path.join(dataroot, 'new_id_format_dev_data.json')
+            # questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
+            questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'],
+                               key=lambda x: x['id'])
+        elif name == 'finetune':
+            question_path = os.path.join(dataroot, 'new_id_format_train_data.json')
+            questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'],
+                               key=lambda x: x['id'])
     else:
         question_path = os.path.join(
             dataroot, 'v2_OpenEnded_mscoco_%s2014_questions.json' % name)
         questions = sorted(json.load(open(question_path))['questions'],
-                        key=lambda x: x['question_id'])
+                           key=lambda x: x['question_id'])
     answer_path = os.path.join(dataroot, 'cache', '%s_target.pkl' % name)
     answers = pickle.load(open(answer_path, 'rb'))
     answers = sorted(answers, key=lambda x: x['question_id'])
@@ -111,22 +123,23 @@ def _load_dataset(dataroot, name, img_id2val):
     entries = []
     num_missing = 0
     for question, answer in zip(questions, answers):
-        if name == 'val' or name =='test':
-            #utils.assert_eq(question['id'], answer['question_id'])
+        if name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
+            # utils.assert_eq(question['id'], answer['question_id'])
             if question['id'] != answer['question_id']:
                 continue
         else:
             utils.assert_eq(question['question_id'], answer['question_id'])
             utils.assert_eq(question['image_id'], answer['image_id'])
-            #if question['question_id'] != answer['question_id'] or question['image_id'] != answer['image_id']:
+            # if question['question_id'] != answer['question_id'] or question['image_id'] != answer['image_id']:
             #    continue
-        img_id = question['id'] if name == 'val' or name =='test' else question['image_id']
+        img_id = question['id'] if name == 'val' or name == 'test' or name == 'dev' or name == 'finetune' else question[
+            'image_id']
         if img_id not in img_id2val:
             num_missing += 1
             continue
         entries.append(_create_entry(img_id2val[img_id], question, answer, name))
 
-    if name == 'val' or name =='test':
+    if name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
         print('Missing ' + str(num_missing) + ' of our examples')
 
     return entries
@@ -148,15 +161,15 @@ class VQAFeatureDataset(Dataset):
 
         self.dictionary = dictionary
 
-        if self.name == 'test':
+        if self.name == 'test' or self.name == 'finetune' or self.name == 'dev':
             self.img_id2idx = pickle.load(
                 open(os.path.join(dataroot, 'val36_imgid2idx.pkl'), 'rb'))
         else:
             self.img_id2idx = pickle.load(
                 open(os.path.join(dataroot, name + '36_imgid2idx.pkl'), 'rb'))
-        
+
         print('loading features from h5 file')
-        if self.name == 'test':
+        if self.name == 'test' or self.name == 'finetune' or self.name == 'dev':
             h5_path = os.path.join(dataroot, 'val36.hdf5')
         else:
             h5_path = os.path.join(dataroot, '%s36.hdf5' % name)
@@ -188,8 +201,8 @@ class VQAFeatureDataset(Dataset):
             entry['q_token'] = tokens
 
     def tensorize(self):
-        #self.features = torch.from_numpy(self.features)
-        #self.spatials = torch.from_numpy(self.spatials)
+        # self.features = torch.from_numpy(self.features)
+        # self.spatials = torch.from_numpy(self.spatials)
 
         for entry in self.entries:
             question = torch.from_numpy(np.array(entry['q_token']))
@@ -219,7 +232,7 @@ class VQAFeatureDataset(Dataset):
         target = torch.zeros(self.num_ans_candidates)
         if labels is not None:
             target.scatter_(0, labels, scores)
-        
+
         if self.name == 'val' or self.name == 'test':
             if labels is None:
                 labels = torch.tensor([-1])
