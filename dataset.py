@@ -9,6 +9,8 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+MAX_VOCAB_SIZE = 12000
+
 class Dictionary(object):
     def __init__(self, word2idx=None, idx2word=None):
         if word2idx is None:
@@ -17,6 +19,7 @@ class Dictionary(object):
             idx2word = []
         self.word2idx = word2idx
         self.idx2word = idx2word
+        self.add_word('[UNK]')
 
     @property
     def ntoken(self):
@@ -36,7 +39,7 @@ class Dictionary(object):
                 tokens.append(self.add_word(w))
         else:
             for w in words:
-                tokens.append(self.word2idx[w] if w in self.word2idx else self.word2idx['the'])
+                tokens.append(self.word2idx[w] if w in self.word2idx else self.word2idx['[UNK]'])
         return tokens
 
     def dump_to_file(self, path):
@@ -52,6 +55,8 @@ class Dictionary(object):
 
     def add_word(self, word):
         if word not in self.word2idx:
+            if len(self.word2idx) >= MAX_VOCAB_SIZE:
+                return self.word2idx['[UNK]']
             self.idx2word.append(word)
             self.word2idx[word] = len(self.idx2word) - 1
         return self.word2idx[word]
@@ -90,8 +95,9 @@ def _load_dataset(dataroot, name, img_id2val):
     id_to_int_map = None
     if name == 'val' or name =='test':
         id_to_int_map = json.load(open('data/new_id_format_id_to_int_map.json'))
-        question_path = os.path.join(dataroot, 'new_id_format_dev_data.json')
+        question_path = os.path.join(dataroot, 'new_id_format_test_data.json')
         questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'], key=lambda x: x['id'])
+        #questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
     else:
         question_path = os.path.join(
             dataroot, 'v2_OpenEnded_mscoco_%s2014_questions.json' % name)

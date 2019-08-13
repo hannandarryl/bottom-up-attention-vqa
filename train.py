@@ -16,17 +16,17 @@ def instance_bce_with_logits(logits, labels):
     return loss
 
 
-def compute_score_with_logits(logits, labels):
+def compute_score_with_logits(logits, labels, device):
     logits = torch.max(logits, 1)[1].data # argmax
-    one_hots = torch.zeros(*labels.size()).cuda()
+    one_hots = torch.zeros(*labels.size()).to(device)
     one_hots.scatter_(1, logits.view(-1, 1), 1)
     scores = (one_hots * labels)
     return scores
 
 
-def train(model, train_loader, eval_loader, num_epochs, output, device):
+def train(model, train_loader, eval_loader, num_epochs, output, lr, device):
     utils.create_dir(output)
-    optim = torch.optim.Adamax(model.parameters())
+    optim = torch.optim.Adamax(model.parameters(), lr=lr)
     logger = utils.Logger(os.path.join(output, 'log.txt'))
     best_eval_score = 0
 
@@ -48,14 +48,14 @@ def train(model, train_loader, eval_loader, num_epochs, output, device):
             optim.step()
             optim.zero_grad()
 
-            batch_score = compute_score_with_logits(pred, a.data).sum()
+            batch_score = compute_score_with_logits(pred, a.data, device).sum()
             total_loss += loss.data.item() * v.size(0)
             train_score += batch_score
 
         total_loss /= len(train_loader.dataset)
         train_score = 100 * train_score / len(train_loader.dataset)
         model.train(False)
-        eval_score, bound = evaluate(model, eval_loader)
+        eval_score, bound = evaluate(model, eval_loader, device)
         model.train(True)
 
         logger.write('epoch %d, time: %.2f' % (epoch, time.time()-t))
@@ -68,18 +68,18 @@ def train(model, train_loader, eval_loader, num_epochs, output, device):
             best_eval_score = eval_score
 
 
-def evaluate(model, dataloader):
+def evaluate(model, dataloader, device):
     score = 0
     upper_bound = 0
     num_data = 0
     lbl_to_ans = pickle.load(open('data/cache/trainval_label2ans.pkl', 'rb'))
-    id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_dev_data.json'))}
+    id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_test_data.json')) if ex['q_type'] == 'image'}
     out_file = open('image_predictions_test.txt', 'w+')
     with torch.no_grad():
         for id_list, v, b, q, a, label in iter(dataloader):
-            v = v.cuda()
-            b = b.cuda()
-            q = q.cuda()
+            v = v.to(device)
+            b = b.to(device)
+            q = q.to(device)
             pred = model(v, b, q, None)
             #batch_score = compute_score_with_logits(pred, a.cuda()).sum()
             #score += batch_score
@@ -93,6 +93,6 @@ def evaluate(model, dataloader):
             num_data += pred.size(0)
 
     print('Number correct: ' + str(score))
-    score = score / len(dataloader.dataset)
+    score = score / len(id_to_a)
     upper_bound = upper_bound / len(dataloader.dataset)
     return score, upper_bound
