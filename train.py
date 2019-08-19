@@ -55,7 +55,7 @@ def train(model, train_loader, eval_loader, num_epochs, output, lr, device):
         total_loss /= len(train_loader.dataset)
         train_score = 100 * train_score / len(train_loader.dataset)
         model.train(False)
-        eval_score, bound = evaluate(model, eval_loader, device)
+        eval_score, bound = evaluate(model, eval_loader, device, 'dev')
         model.train(True)
 
         logger.write('epoch %d, time: %.2f' % (epoch, time.time()-t))
@@ -68,12 +68,15 @@ def train(model, train_loader, eval_loader, num_epochs, output, lr, device):
             best_eval_score = eval_score
 
 
-def evaluate(model, dataloader, device):
+def evaluate(model, dataloader, device, set_name):
     score = 0
     upper_bound = 0
     num_data = 0
     lbl_to_ans = pickle.load(open('data/cache/trainval_label2ans.pkl', 'rb'))
-    id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_test_data.json')) if ex['q_type'] == 'image'}
+    if set_name == 'test':
+        id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_test_data.json')) if ex['image'] is not None}
+    elif set_name == 'dev':
+        id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_dev_data.json')) if ex['q_type'] == 'image'}
     out_file = open('image_predictions_test.txt', 'w+')
     with torch.no_grad():
         for id_list, v, b, q, a, label in iter(dataloader):

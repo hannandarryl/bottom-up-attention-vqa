@@ -63,9 +63,10 @@ if __name__ == '__main__':
     eval_loader = DataLoader(eval_dset, batch_size, shuffle=False, num_workers=6)
     if args.train:
         train(model, train_loader, dev_loader, args.epochs, args.output, args.lr, device)
+        model.load_state_dict(torch.load(os.path.join(args.output, 'model.pth')))
     if args.finetune:
         train(model, finetune_loader, dev_loader, args.finetune_epochs, os.path.join(args.output, 'finetune'),
               args.finetune_lr, device)
 
-    eval_score, bound = evaluate(model, eval_loader, device)
+    eval_score, bound = evaluate(model, eval_loader, device, 'test')
     print('\tTest score: %.2f (%.2f)' % (100 * eval_score, 100 * bound))

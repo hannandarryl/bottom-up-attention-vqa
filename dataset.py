@@ -99,7 +99,7 @@ def _load_dataset(dataroot, name, img_id2val):
         if name == 'val' or name == 'test':
             question_path = os.path.join(dataroot, 'new_id_format_test_data.json')
             # questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
-            questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'],
+            questions = sorted([ex for ex in json.load(open(question_path)) if ex['image'] is not None],
                                key=lambda x: x['id'])
         elif name == 'dev':
             question_path = os.path.join(dataroot, 'new_id_format_dev_data.json')
@@ -142,13 +142,14 @@ def _load_dataset(dataroot, name, img_id2val):
     if name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
         print('Missing ' + str(num_missing) + ' of our examples')
 
+
     return entries
 
 
 class VQAFeatureDataset(Dataset):
     def __init__(self, name, dictionary, device, dataroot='data'):
         super(VQAFeatureDataset, self).__init__()
-        assert name in ['train', 'val', 'test']
+        assert name in ['train', 'val', 'test', 'dev', 'finetune']
 
         self.name = name
         self.device = device
@@ -233,7 +234,7 @@ class VQAFeatureDataset(Dataset):
         if labels is not None:
             target.scatter_(0, labels, scores)
 
-        if self.name == 'val' or self.name == 'test':
+        if self.name == 'val' or self.name == 'test' or self.name == 'dev':
             if labels is None:
                 labels = torch.tensor([-1])
             return entry['question_id'], features, spatials, question, target, labels

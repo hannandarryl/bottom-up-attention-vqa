@@ -269,7 +269,7 @@ if __name__ == '__main__':
     answers = train_answers + finetune_answers_dict
     occurence = list(set(filter_answers(train_answers, 20) + filter_answers(finetune_answers_dict, 0)))
     ans2label = create_ans2label(occurence, 'trainval')
-    # ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
+    #ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
     compute_target(train_answers, ans2label, 'train')
     compute_target(finetune_answers, ans2label, 'finetune')
     compute_target(val_answers, ans2label, 'dev')
