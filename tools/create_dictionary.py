@@ -22,6 +22,7 @@ def create_dictionary(dataroot):
             qs = json.load(open(question_path))['questions']
         for example in qs:
             dictionary.tokenize(example['question'], True)
+            dictionary.tokenize(example['image']['caption'], True)
     return dictionary
 
 

@@ -74,6 +74,7 @@ def _create_entry(img, question, answer, name):
             'question_id': question['id'],
             'image_id': question['id'],
             'image': img,
+            'caption': question['image']['caption'],
             'question': question['question'],
             'answer': answer}
     else:
@@ -81,6 +82,7 @@ def _create_entry(img, question, answer, name):
             'question_id': question['question_id'],
             'image_id': question['image_id'],
             'image': img,
+            'caption': None,
             'question': question['question'],
             'answer': answer}
     return entry
@@ -93,9 +95,7 @@ def _load_dataset(dataroot, name, img_id2val):
     dataroot: root path of dataset
     name: 'train', 'val'
     """
-    id_to_int_map = None
     if name == 'val' or name == 'test' or name == 'dev' or name == 'finetune':
-        id_to_int_map = json.load(open('data/new_id_format_id_to_int_map.json'))
         if name == 'val' or name == 'test':
             question_path = os.path.join(dataroot, 'new_id_format_test_data.json')
             # questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
@@ -201,6 +201,18 @@ class VQAFeatureDataset(Dataset):
             utils.assert_eq(len(tokens), max_length)
             entry['q_token'] = tokens
 
+            if entry['caption']:
+                tokens = self.dictionary.tokenize(entry['caption'], False)
+                tokens = tokens[:50]
+                if len(tokens) < 50:
+                    # Note here we pad in front of the sentence
+                    padding = [self.dictionary.padding_idx] * (50 - len(tokens))
+                    tokens = padding + tokens
+                utils.assert_eq(len(tokens), 50)
+                entry['c_token'] = tokens
+            else:
+                entry['c_token'] = [-1] * 50
+
     def tensorize(self):
         # self.features = torch.from_numpy(self.features)
         # self.spatials = torch.from_numpy(self.spatials)
@@ -208,6 +220,9 @@ class VQAFeatureDataset(Dataset):
         for entry in self.entries:
             question = torch.from_numpy(np.array(entry['q_token']))
             entry['q_token'] = question
+
+            caption = torch.from_numpy(np.array(entry['c_token']))
+            entry['c_token'] = caption
 
             answer = entry['answer']
             labels = np.array(answer['labels'])
@@ -227,6 +242,7 @@ class VQAFeatureDataset(Dataset):
         spatials = torch.from_numpy(self.spatials[entry['image']])
 
         question = entry['q_token']
+        caption = entry['c_token']
         answer = entry['answer']
         labels = answer['labels']
         scores = answer['scores']
@@ -237,9 +253,9 @@ class VQAFeatureDataset(Dataset):
         if self.name == 'val' or self.name == 'test' or self.name == 'dev':
             if labels is None:
                 labels = torch.tensor([-1])
-            return entry['question_id'], features, spatials, question, target, labels
+            return entry['question_id'], features, spatials, question, caption, target, labels
         else:
-            return features, spatials, question, target
+            return features, spatials, question, caption, target
 
     def __len__(self):
         return len(self.entries)

@@ -8,6 +8,7 @@ from tqdm import tqdm
 import pickle
 import json
 
+
 def instance_bce_with_logits(logits, labels):
     assert logits.dim() == 2
 
@@ -17,7 +18,7 @@ def instance_bce_with_logits(logits, labels):
 
 
 def compute_score_with_logits(logits, labels, device):
-    logits = torch.max(logits, 1)[1].data # argmax
+    logits = torch.max(logits, 1)[1].data  # argmax
     one_hots = torch.zeros(*labels.size()).to(device)
     one_hots.scatter_(1, logits.view(-1, 1), 1)
     scores = (one_hots * labels)
@@ -35,13 +36,14 @@ def train(model, train_loader, eval_loader, num_epochs, output, lr, device):
         train_score = 0
         t = time.time()
 
-        for i, (v, b, q, a) in tqdm(enumerate(train_loader)):
+        for i, (v, b, q, c, a) in tqdm(enumerate(train_loader)):
             v = v.to(device)
             b = b.to(device)
             q = q.to(device)
+            c = c.to(device)
             a = a.to(device)
 
-            pred = model(v, b, q, a)
+            pred = model(v, q, c)
             loss = instance_bce_with_logits(pred, a)
             loss.backward()
             nn.utils.clip_grad_norm(model.parameters(), 0.25)
@@ -58,7 +60,7 @@ def train(model, train_loader, eval_loader, num_epochs, output, lr, device):
         eval_score, bound = evaluate(model, eval_loader, device, 'dev')
         model.train(True)
 
-        logger.write('epoch %d, time: %.2f' % (epoch, time.time()-t))
+        logger.write('epoch %d, time: %.2f' % (epoch, time.time() - t))
         logger.write('\ttrain_loss: %.2f, score: %.2f' % (total_loss, train_score))
         logger.write('\teval score: %.2f (%.2f)' % (100 * eval_score, 100 * bound))
 
@@ -74,22 +76,25 @@ def evaluate(model, dataloader, device, set_name):
     num_data = 0
     lbl_to_ans = pickle.load(open('data/cache/trainval_label2ans.pkl', 'rb'))
     if set_name == 'test':
-        id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_test_data.json')) if ex['image'] is not None}
+        id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_test_data.json')) if ex['q_type'] == 'image'}
     elif set_name == 'dev':
         id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_dev_data.json')) if ex['q_type'] == 'image'}
+    id_to_a = {ex['id']: ex['answer'] for ex in json.load(open('data/new_id_format_test_data.json')) if
+               ex['q_type'] == 'image'}
     out_file = open('image_predictions_test.txt', 'w+')
     with torch.no_grad():
-        for id_list, v, b, q, a, label in iter(dataloader):
+        for id_list, v, b, q, c, a, label in iter(dataloader):
             v = v.to(device)
             b = b.to(device)
             q = q.to(device)
-            pred = model(v, b, q, None)
-            #batch_score = compute_score_with_logits(pred, a.cuda()).sum()
-            #score += batch_score
+            c = c.to(device)
+            pred = model(v, q, c)
+            # batch_score = compute_score_with_logits(pred, a.cuda()).sum()
+            # score += batch_score
             for p, l, id_num in zip(pred, label, id_list):
                 guess = torch.argmax(p).item()
                 out_file.write(id_num + '\t' + lbl_to_ans[guess] + '\n')
-                #if guess == l.item():
+                # if guess == l.item():
                 if lbl_to_ans[guess].lower().strip() == id_to_a[id_num].lower().strip():
                     score += 1
             upper_bound += (a.max(1)[0]).sum()
