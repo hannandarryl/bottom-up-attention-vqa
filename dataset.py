@@ -66,7 +66,7 @@ class Dictionary(object):
         return len(self.idx2word)
 
 
-def _create_entry(img, question, answer, name):
+def _create_entry(img, question, answer, caption, name):
     answer.pop('image_id')
     answer.pop('question_id')
     if name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
@@ -74,7 +74,7 @@ def _create_entry(img, question, answer, name):
             'question_id': question['id'],
             'image_id': question['id'],
             'image': img,
-            'caption': question['image']['caption'],
+            'caption': caption,
             'question': question['question'],
             'answer': answer}
     else:
@@ -82,7 +82,7 @@ def _create_entry(img, question, answer, name):
             'question_id': question['question_id'],
             'image_id': question['image_id'],
             'image': img,
-            'caption': None,
+            'caption': caption,
             'question': question['question'],
             'answer': answer}
     return entry
@@ -95,19 +95,20 @@ def _load_dataset(dataroot, name, img_id2val):
     dataroot: root path of dataset
     name: 'train', 'val'
     """
+    img_id_to_caption = {dia['image_id']: dia['caption'] for dia in json.load(open(os.path.join(dataroot, 'visdial_1.0_train.json')))['data']['dialogs']}
     if name == 'val' or name == 'test' or name == 'dev' or name == 'finetune':
-        if name == 'val' or name == 'test':
-            question_path = os.path.join(dataroot, 'new_id_format_test_data.json')
+        if name == 'test':
+            question_path = os.path.join(dataroot, 'official_aaai_split_test_img_examples.json')
             # questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
             questions = sorted([ex for ex in json.load(open(question_path)) if ex['image'] is not None],
                                key=lambda x: x['id'])
         elif name == 'dev':
-            question_path = os.path.join(dataroot, 'new_id_format_dev_data.json')
+            question_path = os.path.join(dataroot, 'official_aaai_split_dev_data.json')
             # questions = sorted([ex for ex in json.load(open(question_path))], key=lambda x: x['id'])
             questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'],
                                key=lambda x: x['id'])
         elif name == 'finetune':
-            question_path = os.path.join(dataroot, 'new_id_format_train_data.json')
+            question_path = os.path.join(dataroot, 'official_aaai_split_train_data.json')
             questions = sorted([ex for ex in json.load(open(question_path)) if ex['q_type'] == 'image'],
                                key=lambda x: x['id'])
     else:
@@ -134,10 +135,15 @@ def _load_dataset(dataroot, name, img_id2val):
             #    continue
         img_id = question['id'] if name == 'val' or name == 'test' or name == 'dev' or name == 'finetune' else question[
             'image_id']
+        if name in ['val', 'test', 'finetune', 'dev']:
+            caption = question['image']['caption']
+        else:
+            caption = img_id_to_caption[img_id]
+
         if img_id not in img_id2val:
             num_missing += 1
             continue
-        entries.append(_create_entry(img_id2val[img_id], question, answer, name))
+        entries.append(_create_entry(img_id2val[img_id], question, answer, caption, name))
 
     if name == 'val' or name == 'test' or name == 'finetune' or name == 'dev':
         print('Missing ' + str(num_missing) + ' of our examples')
@@ -179,6 +185,11 @@ class VQAFeatureDataset(Dataset):
         self.spatials = hf.get('spatial_features')
 
         self.entries = _load_dataset(dataroot, name, self.img_id2idx)
+        #if name == 'test':
+        #    for i, entry in enumerate(self.entries):
+        #        print(entry['image'] - pickle.load(open(entry['image_id'] + '.pkl', 'rb')))
+                #pickle.dump(entry['image'], open(entry['image_id'] + '.pkl', 'wb+'))
+        #    raise Exception
 
         self.tokenize()
         self.tensorize()
@@ -211,7 +222,7 @@ class VQAFeatureDataset(Dataset):
                 utils.assert_eq(len(tokens), 50)
                 entry['c_token'] = tokens
             else:
-                entry['c_token'] = [-1] * 50
+                entry['c_token'] = [0] * 50
 
     def tensorize(self):
         # self.features = torch.from_numpy(self.features)
@@ -238,6 +249,9 @@ class VQAFeatureDataset(Dataset):
 
     def __getitem__(self, index):
         entry = self.entries[index]
+        #if self.name == 'test':
+            #print(np.sum(self.features[entry['image']] - pickle.load(open(str(entry['image_id']) + '.pkl', 'rb'))))
+            #pickle.dump(self.features[entry['image']], open(entry['image_id'] + '.pkl', 'wb+'))
         features = torch.from_numpy(self.features[entry['image']])
         spatials = torch.from_numpy(self.spatials[entry['image']])
 

@@ -25,7 +25,7 @@ import json
 csv.field_size_limit(sys.maxsize)
 
 FIELDNAMES = ['image_id', 'image_w', 'image_h', 'num_boxes', 'boxes', 'features']
-infile = 'data/new_id_format_image_features.tsv'
+infile = 'data/final_aaai_split_image_features.tsv'
 infile_2 = 'data/trainval_36/trainval_resnet101_faster_rcnn_genome_36.tsv'
 train_data_file = 'data/train36.hdf5'
 val_data_file = 'data/val36.hdf5'
@@ -41,16 +41,15 @@ num_fixed_boxes = 36
 if __name__ == '__main__':
     h_train = h5py.File(train_data_file, "w")
     h_val = h5py.File(val_data_file, "w")
-    int_to_id = {v: k for k, v in json.load(open('data/new_id_format_id_to_int_map.json')).items()}
 
     if os.path.exists(train_ids_file) and os.path.exists(val_ids_file):
         train_imgids = pickle.load(open(train_ids_file, 'rb'))
         val_imgids = pickle.load(open(val_ids_file, 'rb'))
     else:
-        #train_imgids = utils.load_imageid('data/train2014')
         train_imgids = pickle.load(open(train_ids_file, 'rb'))
-        val_imgids = set([v for k, v in int_to_id.items()])
-        #pickle.dump(train_imgids, open(train_ids_file, 'wb'))
+        all_data = json.load(open('data/final_aaai_split_train_data.json')) + json.load(open('data/final_aaai_split_dev_data.json'))
+        all_ids = [ex['id'] for ex in all_data]
+        val_imgids = set(all_ids)
         pickle.dump(val_imgids, open(val_ids_file, 'wb'))
     
     train_indices = {}
@@ -123,9 +122,9 @@ if __name__ == '__main__':
         reader = csv.DictReader(tsv_in_file, delimiter='\t', fieldnames=FIELDNAMES)
         for item in reader:
             item['num_boxes'] = int(item['num_boxes'])
-            if int(item['image_id']) not in int_to_id:
-                continue
-            image_id = int_to_id[int(item['image_id'])]
+            #if int(item['image_id']) not in int_to_id:
+            #    continue
+            image_id = '{0:020d}'.format(int(item['image_id']))
             image_w = float(item['image_w'])
             image_h = float(item['image_h'])
             bboxes = np.frombuffer(

@@ -5,24 +5,31 @@ import json
 import numpy as np
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataset import Dictionary
+import argparse
 
-
-def create_dictionary(dataroot):
+def create_dictionary(dataroot, only_image_questions):
     dictionary = Dictionary()
     questions = []
     files = [
-        'new_id_format_train_data.json',
+        'official_aaai_split_train_data.json',
         'v2_OpenEnded_mscoco_train2014_questions.json'
     ]
     for path in files:
         question_path = os.path.join(dataroot, path)
-        if path == 'new_id_format_train_data.json':
-            qs = [example for example in json.load(open(question_path)) if example['q_type'] == 'image']
+        if path == 'official_aaai_split_train_data.json':
+            if only_image_questions:
+                qs = [example for example in json.load(open(question_path)) if example['q_type'] == 'image']
+            else:
+                qs = [example for example in json.load(open(question_path)) if example['image'] is not None]
         else:
             qs = json.load(open(question_path))['questions']
+            caps = [dia['caption'] for dia in json.load(open(os.path.join(dataroot, 'visdial_1.0_train.json')))['data']['dialogs']]
+            for cap in caps:
+                dictionary.tokenize(cap, True)
         for example in qs:
             dictionary.tokenize(example['question'], True)
-            dictionary.tokenize(example['image']['caption'], True)
+            if path == 'official_aaai_split_train_data.json':
+                dictionary.tokenize(example['image']['caption'], True)
     return dictionary
 
 
@@ -47,7 +54,12 @@ def create_glove_embedding_init(idx2word, glove_file):
 
 
 if __name__ == '__main__':
-    d = create_dictionary('data')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--only_image_questions', action='store_true', help='Only load image question types')
+
+    args = parser.parse_args()
+
+    d = create_dictionary('data', args.only_image_questions)
     d.dump_to_file('data/dictionary.pkl')
 
     d = Dictionary.load_from_file('data/dictionary.pkl')

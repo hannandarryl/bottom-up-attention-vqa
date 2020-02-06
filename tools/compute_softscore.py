@@ -5,6 +5,7 @@ import json
 import numpy as np
 import re
 import pickle
+import argparse
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from dataset import Dictionary
@@ -243,16 +244,21 @@ def get_question(qid, questions):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--only_image_questions', action='store_true', help='Set this if you want to only include image question types in the dev set')
+    parser.add_argument('--load_previous_ans2label', action='store_true', help='Set this argument if you want to recompute the softscores without regenerating the ans2label dictionary, which might change the answer space.')
+
+    args = parser.parse_args()
+
     train_answer_file = 'data/v2_mscoco_train2014_annotations.json'
     train_answers = json.load(open(train_answer_file))['annotations']
 
-    finetune_answer_file = 'data/new_id_format_train_data.json'
+    finetune_answer_file = 'data/official_aaai_split_train_data.json'
     finetune_answers = [example for example in json.load(open(finetune_answer_file)) if example['q_type'] == 'image']
     finetune_answers_dict = [{'multiple_choice_answer': example['answer'], 'question_id': example['id']} for example in
                              finetune_answers]
 
-    val_answer_file = 'data/new_id_format_dev_data.json'
-    id_to_int = json.load(open('data/new_id_format_id_to_int_map.json'))
+    val_answer_file = 'data/official_aaai_split_dev_data.json'
     val_answers = [example for example in json.load(open(val_answer_file)) if example['q_type'] == 'image']
     val_answers_dict = [{'multiple_choice_answer': example['answer'], 'question_id': example['id']} for example in
                         val_answers]
@@ -260,17 +266,18 @@ if __name__ == '__main__':
     train_question_file = 'data/v2_OpenEnded_mscoco_train2014_questions.json'
     train_questions = json.load(open(train_question_file))['questions']
 
-    val_question_file = 'data/new_id_format_dev_data.json'
-    val_questions = [example for example in json.load(open(val_question_file)) if example['q_type'] == 'image']
-
-    test_answers = [ex for ex in json.load(open('data/new_id_format_test_data.json')) if ex['q_type'] == 'image']
-    # test_answers = [ex for ex in json.load(open('data/new_id_format_test_img_examples.json'))]
+    val_question_file = 'data/official_aaai_split_dev_data.json'
+    if args.only_image_questions:
+        val_questions = [example for example in json.load(open(val_question_file)) if example['q_type'] == 'image']
+    else:
+        val_questions = [example for example in json.load(open(val_question_file)) if example['image'] is not None]
 
     answers = train_answers + finetune_answers_dict
     occurence = list(set(filter_answers(train_answers, 20) + filter_answers(finetune_answers_dict, 0)))
-    ans2label = create_ans2label(occurence, 'trainval')
-    #ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
+    if args.load_previous_ans2label:
+        ans2label = pickle.load(open('data/cache/trainval_ans2label.pkl', 'rb'))
+    else:
+        ans2label = create_ans2label(occurence, 'trainval')
     compute_target(train_answers, ans2label, 'train')
     compute_target(finetune_answers, ans2label, 'finetune')
     compute_target(val_answers, ans2label, 'dev')
-    compute_target(test_answers, ans2label, 'test')

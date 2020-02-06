@@ -4,6 +4,8 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import numpy as np
 import os
+import pickle
+import random
 
 from dataset import Dictionary, VQAFeatureDataset
 import base_model
@@ -33,13 +35,15 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
     # torch.backends.cudnn.benchmark = True
 
     device = torch.device('cpu')
     if torch.cuda.is_available():
-        device = torch.device('cuda:' + args.gpu)
+       device = torch.device('cuda:' + args.gpu)
 
     dictionary = Dictionary.load_from_file('data/dictionary.pkl')
     train_dset = VQAFeatureDataset('train', dictionary, device)
@@ -56,17 +60,24 @@ if __name__ == '__main__':
 
     if args.model_ckpt:
         model.load_state_dict(torch.load(args.model_ckpt))
+        print('Loaded checkpoint')
 
-    train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=6)
-    finetune_loader = DataLoader(finetune_dset, batch_size, shuffle=True, num_workers=6)
-    dev_loader = DataLoader(dev_dset, batch_size, shuffle=False, num_workers=6)
-    eval_loader = DataLoader(eval_dset, batch_size, shuffle=False, num_workers=6)
+    train_loader = DataLoader(train_dset, batch_size, shuffle=True, num_workers=1)
+    finetune_loader = DataLoader(finetune_dset, batch_size, shuffle=True, num_workers=1)
+    dev_loader = DataLoader(dev_dset, batch_size, shuffle=False, num_workers=1)
+    eval_loader = DataLoader(eval_dset, batch_size, shuffle=False, num_workers=1)
     if args.train:
         train(model, train_loader, dev_loader, args.epochs, args.output, args.lr, device)
         model.load_state_dict(torch.load(os.path.join(args.output, 'model.pth')))
+        print('Score prior to finetuning:')
+        eval_score, bound = evaluate(model, eval_loader, device, 'test')
+        print('\tTest score: %.2f (%.2f)' % (100 * eval_score, 100 * bound))
+    
     if args.finetune:
         train(model, finetune_loader, dev_loader, args.finetune_epochs, os.path.join(args.output, 'finetune'),
               args.finetune_lr, device)
+        model.load_state_dict(torch.load(os.path.join(args.output, 'finetune', 'model.pth')))
+        print('Score after finetuning:')
 
     eval_score, bound = evaluate(model, eval_loader, device, 'test')
     print('\tTest score: %.2f (%.2f)' % (100 * eval_score, 100 * bound))
